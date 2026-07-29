@@ -14,11 +14,12 @@ Les références indirectes sont résolues à la demande, jamais en masse : un
 XObject volumineux n'est lu que si le code le consulte vraiment.
 """
 
+import builtins
 import re
 
 import pymupdf
 
-__all__ = ["open", "Pdf", "Dictionary", "Array", "Name", "String", "PdfError"]
+__all__ = ["open", "Pdf", "Dictionary", "Array", "Name", "String", "Real", "PdfError"]
 
 # Attributs hérités du nœud /Pages parent (PDF 32000-1, tableau 30).
 # TrimBox / BleedBox / ArtBox n'en font volontairement pas partie.
@@ -37,6 +38,10 @@ class Name(str):
 
 class String(str):
     pass
+
+
+class Real(float):
+    """Nombre réel PDF. float suffit ; la classe existe pour l'API."""
 
 
 class Array(list):
@@ -307,10 +312,35 @@ class Page(Dictionary):
                 return v
         raise KeyError(k)
 
+    def __setitem__(self, k, v):
+        """Écrit la valeur dans le PDF sous-jacent, pas seulement en mémoire.
+
+        Seuls les tableaux de nombres — les boîtes /MediaBox, /TrimBox… — sont
+        gérés : c'est le seul type que le moteur réécrit.
+        """
+        dict.__setitem__(self, k, v)
+        if isinstance(v, (list, tuple)):
+            corps = " ".join(_pdf_nombre(x) for x in v)
+            self._doc._ecrire_cle(self.xref, k, "[ " + corps + " ]")
+        else:
+            self._doc._ecrire_cle(self.xref, k, str(v))
+
+
+def _pdf_nombre(x):
+    """Formate un nombre en syntaxe PDF, sans notation scientifique."""
+    f = float(x)
+    return str(int(f)) if f == int(f) else f"{f:.6f}".rstrip("0").rstrip(".")
+
 
 class Pdf:
-    def __init__(self, path):
-        self._doc = pymupdf.open(path)
+    def __init__(self, source):
+        # pikepdf.open accepte un chemin, des octets ou un objet fichier.
+        if isinstance(source, (bytes, bytearray)):
+            self._doc = pymupdf.open(stream=bytes(source), filetype="pdf")
+        elif hasattr(source, "read"):
+            self._doc = pymupdf.open(stream=source.read(), filetype="pdf")
+        else:
+            self._doc = pymupdf.open(source)
         self._cache = {}
         self.pages = [
             Page(self._page_dict(i), self, self._doc[i].xref)
@@ -329,6 +359,23 @@ class Pdf:
         val = _Parser(src, self).parse() if src else None
         self._cache[num] = val
         return val
+
+    def _ecrire_cle(self, xref, cle, valeur):
+        """Écrit une entrée du dictionnaire d'un objet et invalide le cache."""
+        self._doc.xref_set_key(xref, cle.lstrip("/"), valeur)
+        self._cache.pop(xref, None)
+
+    def save(self, cible=None, **kwargs):
+        """Enregistre le PDF. Accepte un chemin ou un objet fichier."""
+        octets = self._doc.tobytes()
+        if cible is None:
+            return octets
+        if hasattr(cible, "write"):
+            cible.write(octets)
+            return None
+        with builtins.open(cible, "wb") as f:
+            f.write(octets)
+        return None
 
     def _page_dict(self, index):
         xref = self._doc[index].xref

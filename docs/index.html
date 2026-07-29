@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VikBAT — contrôle prépresse en ligne</title>
-<meta name="description" content="Analyse prépresse de PDF (DPI, tons directs, fond perdu, surimpression, transparence) directement dans le navigateur.">
+<title>VIKTO LABS BAT — contrôle prépresse</title>
+<meta name="description" content="Contrôle prépresse de PDF : analyse, imposition, organisation des pages, conversion quadrichromie. L'analyse s'exécute dans votre navigateur, sans envoi de fichier.">
 <style>
 :root{
   --bg:#020608; --panel:rgba(0,245,255,.03); --panel2:rgba(0,245,255,.06);
@@ -32,13 +32,16 @@ body::after{
     radial-gradient(ellipse 40% 30% at 8% 80%,rgba(255,0,170,.04),transparent);
 }
 a{color:var(--accent)}
+button{font-family:var(--mono)}
 
 header{
   position:sticky; top:0; z-index:50;
+  background:rgba(2,6,8,.88); backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--border);
+}
+.hdr-top{
   display:flex; align-items:center; justify-content:space-between; gap:16px;
   padding:12px clamp(16px,4vw,44px);
-  background:rgba(2,6,8,.86); backdrop-filter:blur(20px) saturate(180%);
-  border-bottom:1px solid var(--border);
 }
 .logo{display:flex; align-items:center; gap:12px; min-width:0}
 .logo-mark{
@@ -48,42 +51,60 @@ header{
   clip-path:polygon(10% 0,90% 0,100% 10%,100% 90%,90% 100%,10% 100%,0 90%,0 10%);
   box-shadow:0 0 16px rgba(0,245,255,.3),inset 0 0 10px rgba(0,245,255,.1);
 }
-.logo-name{font-size:15px; font-weight:700; letter-spacing:2px; text-transform:uppercase}
+.logo-name{font-size:14px; font-weight:700; letter-spacing:2px; text-transform:uppercase; white-space:nowrap}
 .logo-name em{font-style:normal; color:var(--accent); text-shadow:0 0 10px var(--accent)}
 .logo-sub{font-size:9px; color:var(--faint); letter-spacing:2px; text-transform:uppercase}
 .chip{
-  font-size:9px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase;
+  font-size:9px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase;
   color:var(--accent); border:1px solid var(--border2);
-  padding:4px 10px; background:rgba(0,245,255,.05); white-space:nowrap;
+  padding:4px 10px; background:rgba(0,245,255,.05); text-align:center;
 }
+nav{
+  display:flex; gap:2px; overflow-x:auto; padding:0 clamp(10px,4vw,38px);
+  scrollbar-width:none;
+}
+nav::-webkit-scrollbar{display:none}
+.tab{
+  flex:none; background:none; border:none; cursor:pointer;
+  color:var(--muted); font-size:11px; font-weight:700;
+  letter-spacing:1.4px; text-transform:uppercase;
+  padding:11px 14px; border-bottom:2px solid transparent;
+  transition:color .15s,border-color .15s;
+}
+.tab:hover{color:var(--text)}
+.tab[aria-selected="true"]{color:var(--accent); border-bottom-color:var(--accent)}
 
-main{max-width:1080px; margin:0 auto; padding:clamp(20px,4vw,44px) clamp(16px,4vw,44px) 80px}
+main{max-width:1080px; margin:0 auto; padding:clamp(20px,4vw,40px) clamp(16px,4vw,44px) 80px}
+.panneau[hidden]{display:none}
+.intro{font-size:12px; color:var(--muted); margin-bottom:20px; max-width:70ch}
+.intro strong{color:var(--text); font-weight:700}
 
 .drop{
   border:1px dashed var(--border2); background:var(--panel);
-  padding:clamp(28px,6vw,56px) 24px; text-align:center;
+  padding:clamp(24px,5vw,48px) 24px; text-align:center;
   transition:background .15s,border-color .15s,box-shadow .15s;
 }
 .drop.over{background:rgba(0,245,255,.09); border-color:var(--accent); box-shadow:inset 0 0 40px rgba(0,245,255,.08)}
 .drop.busy{opacity:.5; pointer-events:none}
-.drop h1{font-size:clamp(15px,2.4vw,19px); letter-spacing:1px; margin-bottom:10px}
-.drop p{color:var(--muted); font-size:12px; margin-bottom:20px}
+.drop h2{font-size:clamp(14px,2.2vw,18px); letter-spacing:1px; margin-bottom:8px; font-weight:700}
+.drop p{color:var(--muted); font-size:12px; margin-bottom:18px}
 .btn{
-  display:inline-block; font-family:var(--mono); font-size:11px; font-weight:700;
-  letter-spacing:1.6px; text-transform:uppercase; cursor:pointer;
+  display:inline-block; font-size:11px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; cursor:pointer;
   color:var(--accent); background:rgba(0,245,255,.06);
-  border:1px solid var(--border2); padding:11px 24px;
+  border:1px solid var(--border2); padding:11px 22px;
   transition:background .15s,box-shadow .15s,color .15s;
 }
 .btn:hover:not(:disabled){background:rgba(0,245,255,.14); box-shadow:0 0 18px rgba(0,245,255,.25)}
-.btn:disabled{opacity:.4; cursor:not-allowed}
-.btn.ghost{color:var(--muted); border-color:var(--border)}
-.btn.ghost:hover{color:var(--accent)}
+.btn:disabled{opacity:.35; cursor:not-allowed}
+.btn.ghost{color:var(--muted); border-color:var(--border); background:none}
+.btn.ghost:hover:not(:disabled){color:var(--accent); border-color:var(--border2)}
 
 .status{
-  display:flex; align-items:center; gap:10px; margin-top:18px;
-  font-size:11px; color:var(--muted); min-height:20px;
+  display:flex; align-items:center; gap:10px; margin-top:16px;
+  font-size:11px; color:var(--muted); min-height:20px; justify-content:center;
 }
+.status.gauche{justify-content:flex-start}
 .dot{width:7px;height:7px;flex:none;background:var(--warn);box-shadow:0 0 8px var(--warn)}
 .dot.ready{background:var(--ok);box-shadow:0 0 8px var(--ok)}
 .dot.err{background:var(--ko);box-shadow:0 0 8px var(--ko)}
@@ -92,91 +113,295 @@ main{max-width:1080px; margin:0 auto; padding:clamp(20px,4vw,44px) clamp(16px,4v
 
 .privacy{
   margin-top:22px; padding:12px 14px; font-size:11px; color:var(--muted);
-  border-left:2px solid var(--border2); background:var(--panel);
+  border-left:2px solid var(--border2); background:var(--panel); line-height:1.6;
 }
 .privacy b{color:var(--accent); font-weight:700}
 
-.cards{display:grid; gap:14px; margin-top:32px}
+.cards{display:grid; gap:14px; margin-top:28px}
 .card{border:1px solid var(--border); background:var(--panel); padding:18px 20px}
-.card h2{
-  font-size:13px; letter-spacing:.5px; margin-bottom:4px;
-  overflow-wrap:anywhere; color:var(--text);
-}
+.card h3{font-size:13px; letter-spacing:.5px; margin-bottom:4px; overflow-wrap:anywhere; font-weight:700}
 .card .meta{font-size:10px; color:var(--faint); letter-spacing:1px; text-transform:uppercase; margin-bottom:14px}
 .verdicts{display:grid; gap:7px}
 .v{display:flex; gap:9px; align-items:flex-start; font-size:12px; line-height:1.45}
 .v span:first-child{flex:none}
 .v.ok{color:var(--ok)} .v.ko{color:var(--ko)} .v.warn{color:var(--warn)} .v.info{color:var(--muted)}
-.facts{
-  display:flex; flex-wrap:wrap; gap:6px; margin-top:14px;
-  padding-top:14px; border-top:1px solid var(--border);
-}
-.fact{
-  font-size:10px; letter-spacing:.6px; padding:4px 9px;
-  border:1px solid var(--border); color:var(--muted); background:rgba(0,245,255,.04);
-}
+.facts{display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; padding-top:14px; border-top:1px solid var(--border)}
+.fact{font-size:10px; letter-spacing:.6px; padding:4px 9px; border:1px solid var(--border); color:var(--muted); background:rgba(0,245,255,.04)}
 .fact b{color:var(--text); font-weight:700}
 .card.err{border-color:rgba(255,0,60,.4)}
 .card.err .meta{color:var(--ko)}
 
-.report-bar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:28px}
-#report-frame{
-  width:100%; height:min(78vh,900px); margin-top:16px;
-  border:1px solid var(--border); background:#fff; display:none;
+.reglages{border:1px solid var(--border); background:var(--panel); padding:16px 18px; margin-top:20px}
+.reglages-titre{font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent); margin-bottom:14px; font-weight:700}
+.ligne{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:7px 0; border-bottom:1px solid rgba(0,245,255,.07); flex-wrap:wrap}
+.ligne:last-of-type{border-bottom:none}
+.ligne label{font-size:12px; color:var(--muted)}
+select,input[type=number]{
+  font-family:var(--mono); font-size:12px; color:var(--text);
+  background:rgba(0,245,255,.05); border:1px solid var(--border2);
+  padding:6px 9px; min-width:110px;
 }
+select:focus,input:focus{outline:1px solid var(--accent)}
+.coches{display:flex; flex-wrap:wrap; gap:14px; margin-top:14px; padding-top:14px; border-top:1px solid var(--border)}
+.coches label{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); cursor:pointer}
+.coches input{accent-color:var(--accent); width:14px; height:14px; cursor:pointer}
+
+.barre{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:22px}
+#report-frame{width:100%; height:min(78vh,900px); margin-top:16px; border:1px solid var(--border); background:#fff; display:none}
+
+.grille-pages{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+  gap:12px; margin-top:20px; min-height:60px;
+}
+.vignette{
+  border:1px solid var(--border); background:var(--panel); padding:8px;
+  text-align:center; cursor:grab; transition:border-color .15s,box-shadow .15s,opacity .15s;
+}
+.vignette:hover{border-color:var(--border2)}
+.vignette.drag{opacity:.35}
+.vignette.cible{border-color:var(--accent); box-shadow:0 0 14px rgba(0,245,255,.3)}
+.vignette img{width:100%; height:auto; display:block; background:#fff}
+.vignette span{display:block; font-size:10px; color:var(--faint); letter-spacing:1px; margin-top:6px}
+.vide{grid-column:1/-1; text-align:center; color:var(--faint); font-size:11px; letter-spacing:1px; padding:22px}
+
+.plaques{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-top:20px}
+.plaque{border:1px solid var(--border); background:var(--panel); padding:10px}
+.plaque-titre{font-size:10px; letter-spacing:1.6px; text-transform:uppercase; color:var(--accent); margin-bottom:8px; display:flex; justify-content:space-between; gap:8px}
+.plaque-titre b{color:var(--muted); font-weight:400}
+.plaque canvas{width:100%; height:auto; display:block; background:#fff; border:1px solid rgba(0,245,255,.08)}
+
 footer{
   border-top:1px solid var(--border); margin-top:60px; padding:22px clamp(16px,4vw,44px);
-  font-size:10px; color:var(--faint); letter-spacing:1px; text-align:center;
+  font-size:10px; color:var(--faint); letter-spacing:1px; text-align:center; line-height:1.9;
 }
-@media (max-width:560px){
+@media (max-width:620px){
   .logo-sub{display:none}
-  header .chip{font-size:8px; padding:3px 7px}
+  .hdr-top .chip{font-size:8px; padding:3px 7px; letter-spacing:1px}
+  .ligne{flex-direction:column; align-items:stretch; gap:6px}
+  select,input[type=number]{width:100%}
 }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">
-    <div class="logo-mark">V</div>
-    <div>
-      <div class="logo-name">VIK<em>BAT</em></div>
-      <div class="logo-sub">Contrôle prépresse</div>
+  <div class="hdr-top">
+    <div class="logo">
+      <div class="logo-mark">V</div>
+      <div>
+        <div class="logo-name">VIKTO LABS <em>BAT</em></div>
+        <div class="logo-sub">Contrôle prépresse</div>
+      </div>
     </div>
+    <div class="chip">Aucun fichier envoyé</div>
   </div>
-  <div class="chip">100&nbsp;% local</div>
+  <nav role="tablist">
+    <button class="tab" role="tab" aria-selected="true"  data-panneau="analyse">Analyse</button>
+    <button class="tab" role="tab" aria-selected="false" data-panneau="imposition">Imposition</button>
+    <button class="tab" role="tab" aria-selected="false" data-panneau="organiser">Organiser</button>
+    <button class="tab" role="tab" aria-selected="false" data-panneau="separation">Aperçu CMJN</button>
+    <button class="tab" role="tab" aria-selected="false" data-panneau="convertir">Convertir</button>
+    <button class="tab" role="tab" aria-selected="false" data-panneau="corriger">Corriger</button>
+  </nav>
 </header>
 
 <main>
-  <section id="drop" class="drop">
-    <h1>Déposez vos PDF ici</h1>
-    <p>Analyse complète : résolution, mode colorimétrique, tons directs, fond perdu, surimpression, transparence.</p>
-    <button id="pick" class="btn" disabled>Choisir des fichiers</button>
-    <input id="file" type="file" accept="application/pdf,.pdf" multiple hidden>
-    <div class="status">
-      <span id="dot" class="dot work"></span>
-      <span id="status">Préparation du moteur d'analyse…</span>
+
+  <!-- ── ANALYSE ── -->
+  <section class="panneau" id="p-analyse">
+    <p class="intro">Contrôle complet du BAT : <strong>mode colorimétrique</strong>, <strong>résolution par page</strong>,
+      <strong>tons directs</strong>, <strong>fond perdu</strong>, <strong>surimpression</strong> et <strong>transparence</strong>.
+      Plusieurs fichiers acceptés d'un coup.</p>
+
+    <div class="drop" id="an-drop">
+      <h2>Déposez vos PDF ici</h2>
+      <p>Un rapport détaillé est produit pour l'ensemble des fichiers.</p>
+      <button class="btn" id="an-pick" disabled>Choisir des fichiers</button>
+      <input id="an-file" type="file" accept="application/pdf,.pdf" multiple hidden>
+      <div class="status">
+        <span id="dot" class="dot work"></span>
+        <span id="status">Préparation du moteur d'analyse…</span>
+      </div>
+    </div>
+
+    <div class="privacy">
+      <b>La page est en ligne, vos fichiers ne le sont pas.</b> Seul le code de l'outil est téléchargé
+      depuis ce site, une fois, au chargement. Vos PDF, eux, ne sont jamais transmis : ils sont lus et
+      analysés par votre propre navigateur. Vous pouvez couper votre connexion après l'ouverture de la
+      page, tout continue de fonctionner.
+    </div>
+
+    <div class="cards" id="cards"></div>
+
+    <div class="barre" id="report-bar" hidden>
+      <button id="show-report" class="btn">Voir le rapport complet</button>
+      <button id="dl-report" class="btn ghost">Télécharger le rapport</button>
+    </div>
+    <iframe id="report-frame" sandbox="allow-scripts allow-popups" title="Rapport d'analyse"></iframe>
+  </section>
+
+  <!-- ── IMPOSITION ── -->
+  <section class="panneau" id="p-imposition" hidden>
+    <p class="intro">Imposition 2-up avec traits de coupe, repères de repérage et contrôle du fond perdu.
+      Déposez le PDF <strong>page à page</strong> : la planche est générée à partir de lui.</p>
+
+    <div class="drop" id="imp-drop">
+      <h2>PDF page à page</h2>
+      <p id="imp-nom">Aucun fichier chargé</p>
+      <button class="btn" id="imp-pick" disabled>Choisir un fichier</button>
+      <input id="imp-file" type="file" accept="application/pdf,.pdf" hidden>
+    </div>
+
+    <div class="reglages">
+      <div class="reglages-titre">Paramètres d'imposition</div>
+      <div class="ligne">
+        <label for="imp-sheet">Format de la planche de sortie</label>
+        <select id="imp-sheet">
+          <option value="auto" selected>Auto — 2 × format page + marques</option>
+          <option value="a3l">A3 paysage 420 × 297 mm</option>
+          <option value="a3p">A3 portrait 297 × 420 mm</option>
+          <option value="a4l">A4 paysage 297 × 210 mm</option>
+          <option value="tabloid">Tabloid 432 × 279 mm</option>
+        </select>
+      </div>
+      <div class="ligne">
+        <label for="imp-mode">Mode d'imposition</label>
+        <select id="imp-mode">
+          <option value="sequential">Séquentiel (1-2, 3-4, 5-6…)</option>
+          <option value="booklet">Booklet — piqûre à cheval</option>
+          <option value="booklet_pb">Booklet — dos carré collé</option>
+        </select>
+      </div>
+      <div class="ligne">
+        <label for="imp-inner">Fond perdu intérieur / spine (mm)</label>
+        <input id="imp-inner" type="number" value="3" min="0" max="20" step="0.5">
+      </div>
+      <div class="ligne">
+        <label for="imp-outer">Fond perdu extérieur (mm)</label>
+        <input id="imp-outer" type="number" value="3" min="0" max="20" step="0.5">
+      </div>
+      <div class="ligne">
+        <label for="imp-creep">Blanc tournant / creep (mm)</label>
+        <input id="imp-creep" type="number" value="0" min="0" max="5" step="0.1">
+      </div>
+      <div class="ligne">
+        <label for="imp-margin">Marge des marques (mm)</label>
+        <input id="imp-margin" type="number" value="8" min="5" max="25" step="1">
+      </div>
+      <div class="coches">
+        <label><input type="checkbox" id="imp-crop" checked> Traits de coupe</label>
+        <label><input type="checkbox" id="imp-reg" checked> Repères de repérage</label>
+        <label><input type="checkbox" id="imp-fold" checked> Repère de pliure</label>
+        <label><input type="checkbox" id="imp-bar"> Barre couleur CMJN</label>
+      </div>
+    </div>
+
+    <div class="barre">
+      <button class="btn" id="imp-run" disabled>Générer l'imposition</button>
+      <span class="status gauche"><span id="imp-dot" class="dot ready"></span><span id="imp-status">En attente d'un fichier</span></span>
     </div>
   </section>
 
-  <div class="privacy">
-    <b>Vos fichiers ne quittent pas votre ordinateur.</b> L'analyse s'exécute entièrement
-    dans votre navigateur : aucun PDF n'est envoyé sur un serveur. Vous pouvez couper
-    votre connexion une fois la page chargée.
-  </div>
+  <!-- ── ORGANISER ── -->
+  <section class="panneau" id="p-organiser" hidden>
+    <p class="intro">Glissez les vignettes pour réordonner les pages, puis téléchargez le PDF réorganisé.</p>
 
-  <section id="cards" class="cards"></section>
+    <div class="drop" id="org-drop">
+      <h2>Ouvrir un PDF</h2>
+      <p id="org-nom">Aucun fichier chargé</p>
+      <button class="btn" id="org-pick" disabled>Choisir un fichier</button>
+      <input id="org-file" type="file" accept="application/pdf,.pdf" hidden>
+    </div>
 
-  <div id="report-bar" class="report-bar" hidden>
-    <button id="show-report" class="btn">Voir le rapport complet</button>
-    <button id="dl-report" class="btn ghost">Télécharger le rapport</button>
-  </div>
-  <iframe id="report-frame" sandbox="allow-scripts allow-popups" title="Rapport d'analyse"></iframe>
+    <div class="grille-pages" id="org-grille"><div class="vide">Aucun PDF chargé</div></div>
+
+    <div class="barre">
+      <button class="btn" id="org-run" disabled>Télécharger le PDF réordonné</button>
+      <button class="btn ghost" id="org-reset" disabled>Rétablir l'ordre</button>
+      <span class="status gauche"><span id="org-dot" class="dot ready"></span><span id="org-status">En attente d'un fichier</span></span>
+    </div>
+  </section>
+
+  <!-- ── APERÇU CMJN ── -->
+  <section class="panneau" id="p-separation" hidden>
+    <p class="intro">Décompose une page en ses <strong>quatre plaques d'impression</strong>.
+      Utile pour repérer un noir composé, un texte à séparer ou un aplat qui traîne sur une plaque.</p>
+
+    <div class="drop" id="sep-drop">
+      <h2>Page à séparer</h2>
+      <p id="sep-nom">Aucun fichier chargé</p>
+      <button class="btn" id="sep-pick" disabled>Choisir un fichier</button>
+      <input id="sep-file" type="file" accept="application/pdf,.pdf" hidden>
+    </div>
+
+    <div class="barre">
+      <button class="btn ghost" id="sep-prec" disabled>← Page précédente</button>
+      <span id="sep-compteur" style="font-size:11px;color:var(--muted);letter-spacing:1px">— / —</span>
+      <button class="btn ghost" id="sep-suiv" disabled>Page suivante →</button>
+      <span class="status gauche"><span id="sep-dot" class="dot ready"></span><span id="sep-status">En attente d'un fichier</span></span>
+    </div>
+
+    <div class="plaques" id="sep-plaques"></div>
+    <div id="sep-tons" class="privacy" hidden></div>
+  </section>
+
+  <!-- ── CONVERTIR ── -->
+  <section class="panneau" id="p-convertir" hidden>
+    <p class="intro">Convertit les tons directs et les couleurs RVB en <strong>quadrichromie CMJN</strong>.</p>
+
+    <div class="privacy">
+      <b>Méthode :</b> chaque page est re-rastérisée en CMJN natif à 300 dpi, ce qui élimine
+      tons directs et RVB. Le texte et les tracés deviennent donc des images : le fichier produit
+      est plus lourd et n'est plus vectoriel. C'est exactement ce que fait l'application macOS
+      lorsque Ghostscript n'est pas installé — c'est-à-dire, aujourd'hui, sur votre poste.
+    </div>
+
+    <div class="drop" id="conv-drop">
+      <h2>PDF avec tons directs ou RVB</h2>
+      <p id="conv-nom">Aucun fichier chargé</p>
+      <button class="btn" id="conv-pick" disabled>Choisir un fichier</button>
+      <input id="conv-file" type="file" accept="application/pdf,.pdf" hidden>
+    </div>
+
+    <div class="barre">
+      <button class="btn" id="conv-run" disabled>Convertir en CMJN</button>
+      <span class="status gauche"><span id="conv-dot" class="dot ready"></span><span id="conv-status">En attente d'un fichier</span></span>
+    </div>
+  </section>
+
+  <!-- ── CORRIGER ── -->
+  <section class="panneau" id="p-corriger" hidden>
+    <p class="intro">Applique des corrections automatiques et renvoie un PDF corrigé.
+      Le fichier d'origine n'est jamais modifié.</p>
+
+    <div class="drop" id="fix-drop">
+      <h2>PDF à corriger</h2>
+      <p id="fix-nom">Aucun fichier chargé</p>
+      <button class="btn" id="fix-pick" disabled>Choisir un fichier</button>
+      <input id="fix-file" type="file" accept="application/pdf,.pdf" hidden>
+    </div>
+
+    <div class="reglages">
+      <div class="reglages-titre">Corrections à appliquer</div>
+      <div class="coches" style="margin-top:0;padding-top:0;border-top:none;flex-direction:column;gap:11px">
+        <label><input type="checkbox" id="fix-rgb"> Convertir les couleurs RVB en CMJN <span style="color:var(--faint)">(rastérise la page)</span></label>
+        <label><input type="checkbox" id="fix-spot"> Convertir les tons directs en quadrichromie <span style="color:var(--faint)">(rastérise la page)</span></label>
+        <label><input type="checkbox" id="fix-bleed" checked> Ajouter 3 mm de fond perdu si absent</label>
+        <label><input type="checkbox" id="fix-meta" checked> Nettoyer les métadonnées</label>
+      </div>
+    </div>
+
+    <div class="barre">
+      <button class="btn" id="fix-run" disabled>Appliquer et télécharger</button>
+      <span class="status gauche"><span id="fix-dot" class="dot ready"></span><span id="fix-status">En attente d'un fichier</span></span>
+    </div>
+  </section>
+
 </main>
 
 <footer>
-  VikBAT — Vikto Labs · moteur Python exécuté dans le navigateur (Pyodide + PyMuPDF)
-  · <a href="https://github.com/Viktor-Guignard/vikto-labs-bat">code source</a>
+  VIKTO LABS BAT — moteur Python exécuté dans le navigateur (Pyodide + PyMuPDF)<br>
+  <a href="https://github.com/Viktor-Guignard/vikto-labs-bat">code source</a>
 </footer>
 
 <script src="app.js"></script>

@@ -1,7 +1,12 @@
-"""Colle entre le worker JavaScript et le moteur d'analyse.
+"""Colle entre le worker JavaScript et les moteurs d'analyse et d'outils.
 
-Les résultats complets (miniatures base64 comprises) restent côté Python :
-seul un résumé léger traverse la frontière vers JavaScript.
+Les résultats volumineux (miniatures base64, PDF produits) restent côté Python :
+seul un résumé léger, ou les octets explicitement demandés, traversent la
+frontière vers JavaScript.
+
+`server_analyseur` est importé tel quel : son serveur HTTP ne démarre que via
+`__main__`, et sa vérification de dépendances trouve PyMuPDF ainsi que le
+pikepdf de remplacement, donc rien n'est installé au chargement.
 """
 
 import sys
@@ -9,9 +14,17 @@ import sys
 sys.path.insert(0, "/py")
 
 import analyse_pdf_mail as A  # noqa: E402
+import server_analyseur as S  # noqa: E402
 
 RESULTATS = []
 
+# PDF produits par les outils, gardés côté Python jusqu'au téléchargement.
+_SORTIES = {}
+
+
+# ════════════════════════════════════════════════════════════
+# ANALYSE
+# ════════════════════════════════════════════════════════════
 
 def reset():
     RESULTATS.clear()
@@ -73,3 +86,79 @@ def rapport_html(nom_projet):
 
 def rapport_texte():
     return "\n\n".join(A.formater_rapport_texte(r) for r in RESULTATS)
+
+
+# ════════════════════════════════════════════════════════════
+# OUTILS (imposition, organisation, conversion)
+# ════════════════════════════════════════════════════════════
+
+def _garder(nom, octets):
+    """Range un PDF produit et renvoie sa description, sans le transférer."""
+    _SORTIES[nom] = octets
+    return {"nom": nom, "taille": len(octets)}
+
+
+def recuperer(nom):
+    """Renvoie les octets d'un PDF produit, puis les oublie."""
+    return _SORTIES.pop(nom, b"")
+
+
+def miniatures(chemin, nom_fichier):
+    """Vignettes de toutes les pages. Renvoie {key, total, thumbs:[b64]}."""
+    with open(chemin, "rb") as f:
+        octets = f.read()
+    return S._get_page_thumbs(octets, nom_fichier)
+
+
+def reorganiser(cle, ordre, nom_sortie):
+    """Réordonne les pages du PDF mis en cache par miniatures()."""
+    return _garder(nom_sortie, S._reorder_pages(cle, list(ordre)))
+
+
+def imposer(chemin, nom_sortie, options):
+    """Imposition 2-up. `options` reprend les paramètres de l'app native."""
+    with open(chemin, "rb") as f:
+        octets = f.read()
+    o = dict(options)
+    resultat = S._impose_pdf_pro(
+        octets,
+        mode=o.get("mode", "sequential"),
+        inner_bleed=float(o.get("inner_bleed", 3)),
+        outer_bleed=float(o.get("outer_bleed", 3)),
+        creep=float(o.get("creep", 0)),
+        mark_margin=float(o.get("mark_margin", 8)),
+        crop_marks=bool(o.get("crop_marks", True)),
+        reg_marks=bool(o.get("reg_marks", True)),
+        fold_marks=bool(o.get("fold_marks", True)),
+        color_bar=bool(o.get("color_bar", False)),
+        sheet_size=o.get("sheet_size", "auto"),
+    )
+    return _garder(nom_sortie, resultat)
+
+
+def apercu_cmjn(chemin, page):
+    """Sépare une page en ses quatre plaques.
+
+    Renvoie {width, height, total, raw_b64, spots} — raw_b64 contient 4 octets
+    par pixel (C, M, J, N), décodés côté navigateur pour dessiner les plaques.
+    """
+    return S._render_cmyk_page(chemin, int(page))
+
+
+def corriger(chemin, nom_sortie, fixups):
+    """Corrections automatiques : conversion CMJN, fond perdu, métadonnées."""
+    with open(chemin, "rb") as f:
+        octets = f.read()
+    return _garder(nom_sortie, S._apply_pitstop_fixups(octets, dict(fixups)))
+
+
+def convertir_cmjn(chemin, nom_sortie):
+    """Conversion quadrichromie.
+
+    _convert_to_cmyk tente Ghostscript puis retombe sur la rastérisation
+    PyMuPDF. Ghostscript n'existant pas ici, c'est toujours la seconde voie
+    qui s'applique — celle que décrit déjà l'onglet de l'application.
+    """
+    with open(chemin, "rb") as f:
+        octets = f.read()
+    return _garder(nom_sortie, S._convert_to_cmyk(octets))
