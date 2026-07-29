@@ -1,0 +1,3 @@
+#!/bin/bash
+DIR="$(cd "$(dirname "$0")/../Resources" && pwd)"
+exec /usr/bin/env python3 "$DIR/controle_prepresse.pyz"
