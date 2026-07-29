@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VikBAT — contrôle prépresse en ligne</title>
+<meta name="description" content="Analyse prépresse de PDF (DPI, tons directs, fond perdu, surimpression, transparence) directement dans le navigateur.">
+<style>
+:root{
+  --bg:#020608; --panel:rgba(0,245,255,.03); --panel2:rgba(0,245,255,.06);
+  --border:rgba(0,245,255,.14); --border2:rgba(0,245,255,.28);
+  --accent:#00f5ff; --accent2:#ff00aa;
+  --text:#e0f7fa; --muted:rgba(224,247,250,.55); --faint:rgba(0,245,255,.35);
+  --ok:#00ff9d; --ko:#ff003c; --warn:#ffb700;
+  --mono:'SF Mono',Menlo,Monaco,'Courier New',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--mono); background:var(--bg); color:var(--text);
+  min-height:100vh; -webkit-font-smoothing:antialiased; line-height:1.5;
+  background-image:
+    linear-gradient(rgba(0,245,255,.028) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,245,255,.028) 1px,transparent 1px);
+  background-size:44px 44px;
+}
+body::after{
+  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%,rgba(0,245,255,.07),transparent),
+    radial-gradient(ellipse 40% 30% at 90% 85%,rgba(157,0,255,.05),transparent),
+    radial-gradient(ellipse 40% 30% at 8% 80%,rgba(255,0,170,.04),transparent);
+}
+a{color:var(--accent)}
+
+header{
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:12px clamp(16px,4vw,44px);
+  background:rgba(2,6,8,.86); backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--border);
+}
+.logo{display:flex; align-items:center; gap:12px; min-width:0}
+.logo-mark{
+  width:32px; height:32px; flex:none; display:grid; place-items:center;
+  border:1px solid var(--accent); color:var(--accent);
+  font-size:13px; font-weight:900;
+  clip-path:polygon(10% 0,90% 0,100% 10%,100% 90%,90% 100%,10% 100%,0 90%,0 10%);
+  box-shadow:0 0 16px rgba(0,245,255,.3),inset 0 0 10px rgba(0,245,255,.1);
+}
+.logo-name{font-size:15px; font-weight:700; letter-spacing:2px; text-transform:uppercase}
+.logo-name em{font-style:normal; color:var(--accent); text-shadow:0 0 10px var(--accent)}
+.logo-sub{font-size:9px; color:var(--faint); letter-spacing:2px; text-transform:uppercase}
+.chip{
+  font-size:9px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase;
+  color:var(--accent); border:1px solid var(--border2);
+  padding:4px 10px; background:rgba(0,245,255,.05); white-space:nowrap;
+}
+
+main{max-width:1080px; margin:0 auto; padding:clamp(20px,4vw,44px) clamp(16px,4vw,44px) 80px}
+
+.drop{
+  border:1px dashed var(--border2); background:var(--panel);
+  padding:clamp(28px,6vw,56px) 24px; text-align:center;
+  transition:background .15s,border-color .15s,box-shadow .15s;
+}
+.drop.over{background:rgba(0,245,255,.09); border-color:var(--accent); box-shadow:inset 0 0 40px rgba(0,245,255,.08)}
+.drop.busy{opacity:.5; pointer-events:none}
+.drop h1{font-size:clamp(15px,2.4vw,19px); letter-spacing:1px; margin-bottom:10px}
+.drop p{color:var(--muted); font-size:12px; margin-bottom:20px}
+.btn{
+  display:inline-block; font-family:var(--mono); font-size:11px; font-weight:700;
+  letter-spacing:1.6px; text-transform:uppercase; cursor:pointer;
+  color:var(--accent); background:rgba(0,245,255,.06);
+  border:1px solid var(--border2); padding:11px 24px;
+  transition:background .15s,box-shadow .15s,color .15s;
+}
+.btn:hover:not(:disabled){background:rgba(0,245,255,.14); box-shadow:0 0 18px rgba(0,245,255,.25)}
+.btn:disabled{opacity:.4; cursor:not-allowed}
+.btn.ghost{color:var(--muted); border-color:var(--border)}
+.btn.ghost:hover{color:var(--accent)}
+
+.status{
+  display:flex; align-items:center; gap:10px; margin-top:18px;
+  font-size:11px; color:var(--muted); min-height:20px;
+}
+.dot{width:7px;height:7px;flex:none;background:var(--warn);box-shadow:0 0 8px var(--warn)}
+.dot.ready{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.dot.err{background:var(--ko);box-shadow:0 0 8px var(--ko)}
+.dot.work{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+.privacy{
+  margin-top:22px; padding:12px 14px; font-size:11px; color:var(--muted);
+  border-left:2px solid var(--border2); background:var(--panel);
+}
+.privacy b{color:var(--accent); font-weight:700}
+
+.cards{display:grid; gap:14px; margin-top:32px}
+.card{border:1px solid var(--border); background:var(--panel); padding:18px 20px}
+.card h2{
+  font-size:13px; letter-spacing:.5px; margin-bottom:4px;
+  overflow-wrap:anywhere; color:var(--text);
+}
+.card .meta{font-size:10px; color:var(--faint); letter-spacing:1px; text-transform:uppercase; margin-bottom:14px}
+.verdicts{display:grid; gap:7px}
+.v{display:flex; gap:9px; align-items:flex-start; font-size:12px; line-height:1.45}
+.v span:first-child{flex:none}
+.v.ok{color:var(--ok)} .v.ko{color:var(--ko)} .v.warn{color:var(--warn)} .v.info{color:var(--muted)}
+.facts{
+  display:flex; flex-wrap:wrap; gap:6px; margin-top:14px;
+  padding-top:14px; border-top:1px solid var(--border);
+}
+.fact{
+  font-size:10px; letter-spacing:.6px; padding:4px 9px;
+  border:1px solid var(--border); color:var(--muted); background:rgba(0,245,255,.04);
+}
+.fact b{color:var(--text); font-weight:700}
+.card.err{border-color:rgba(255,0,60,.4)}
+.card.err .meta{color:var(--ko)}
+
+.report-bar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:28px}
+#report-frame{
+  width:100%; height:min(78vh,900px); margin-top:16px;
+  border:1px solid var(--border); background:#fff; display:none;
+}
+footer{
+  border-top:1px solid var(--border); margin-top:60px; padding:22px clamp(16px,4vw,44px);
+  font-size:10px; color:var(--faint); letter-spacing:1px; text-align:center;
+}
+@media (max-width:560px){
+  .logo-sub{display:none}
+  header .chip{font-size:8px; padding:3px 7px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">V</div>
+    <div>
+      <div class="logo-name">VIK<em>BAT</em></div>
+      <div class="logo-sub">Contrôle prépresse</div>
+    </div>
+  </div>
+  <div class="chip">100&nbsp;% local</div>
+</header>
+
+<main>
+  <section id="drop" class="drop">
+    <h1>Déposez vos PDF ici</h1>
+    <p>Analyse complète : résolution, mode colorimétrique, tons directs, fond perdu, surimpression, transparence.</p>
+    <button id="pick" class="btn" disabled>Choisir des fichiers</button>
+    <input id="file" type="file" accept="application/pdf,.pdf" multiple hidden>
+    <div class="status">
+      <span id="dot" class="dot work"></span>
+      <span id="status">Préparation du moteur d'analyse…</span>
+    </div>
+  </section>
+
+  <div class="privacy">
+    <b>Vos fichiers ne quittent pas votre ordinateur.</b> L'analyse s'exécute entièrement
+    dans votre navigateur : aucun PDF n'est envoyé sur un serveur. Vous pouvez couper
+    votre connexion une fois la page chargée.
+  </div>
+
+  <section id="cards" class="cards"></section>
+
+  <div id="report-bar" class="report-bar" hidden>
+    <button id="show-report" class="btn">Voir le rapport complet</button>
+    <button id="dl-report" class="btn ghost">Télécharger le rapport</button>
+  </div>
+  <iframe id="report-frame" sandbox="allow-scripts allow-popups" title="Rapport d'analyse"></iframe>
+</main>
+
+<footer>
+  VikBAT — Vikto Labs · moteur Python exécuté dans le navigateur (Pyodide + PyMuPDF)
+  · <a href="https://github.com/Viktor-Guignard/vikto-labs-bat">code source</a>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
